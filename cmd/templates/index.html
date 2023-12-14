@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+{{.Data.dep}}
+
+<body class="dark">
+
+    <div>
+        <div class="tabs left-align">
+            {{range $index, $element := .Data.ips}}
+            <a {{ if eq $index 0}} class="active" {{end}} id="key{{$index}}"
+                hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{.}}</a>
+            {{end}}
+        </div>
+        {{range $index, $element := .Data.ips}}
+        <div id="value{{$index}}" class="page padding {{ if eq $index 0}} active {{end}}">
+            <h5>Elgato Key Lights</h5>
+            <div>{{.}}</div>
+            <nav>
+                <button name="ip" value={{.}} hx-post="/on" hx-swap="innerHTML">
+                    On
+                </button>
+            </nav>
+        </div>
+        {{end}}
+    </div>
+
+</body>
+
+</html>
