@@ -6,19 +6,35 @@
 
     <div>
         <div class="tabs left-align">
-            {{range $index, $element := .Data.ips}}
+            {{range $index, $element := .Data.state}}
             <a {{ if eq $index 0}} class="active" {{end}} id="key{{$index}}"
-                hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{.}}</a>
+                hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{(index
+                $element.Lights 0).IP}}</a>
             {{end}}
         </div>
-        {{range $index, $element := .Data.ips}}
+        {{range $index, $element := .Data.state}}
         <div id="value{{$index}}" class="page padding {{ if eq $index 0}} active {{end}}">
             <h5>Elgato Key Lights</h5>
-            <div>{{.}}</div>
+            <div>{{(index $element.Lights 0).IP}}</div>
             <nav>
-                <button name="ip" value={{.}} hx-post="/on" hx-swap="innerHTML">
-                    On
+                <button name="ip" value={{(index $element.Lights 0).IP}} hx-post="/on" hx-swap="innerHTML">
+                    {{if eq (index $element.Lights 0).On 0}} On {{else}} Off {{end}}
                 </button>
+                <input type="hidden" name="ip" value={{(index $element.Lights 0).IP}}>
+                <i>brightness_high</i>
+                <label class="slider medium">
+                    <input hx-post="/brightness" hx-include="[name='ip']" name="brightness" type="range"
+                        value="{{(index $element.Lights 0).Brightness}}" min="0" max="100">
+                    <span></span>
+                    <div class="tooltip"></div>
+                </label>
+                <i>thermostat</i>
+                <label class="slider medium">
+                    <input hx-post="/temperature" hx-include="[name='ip']" name="temperature" type="range"
+                        value="{{(index $element.Lights 0).Temperature}}" min="143" max="344">
+                    <span></span>
+                    <div class="tooltip"></div>
+                </label>
             </nav>
         </div>
         {{end}}
