@@ -68,7 +68,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ips []string) {
 	}
 
 	var data []KeylightState
-
 	for _, v := range ips {
 		res, err := getState(v, &http.Client{})
 		if err != nil {
@@ -79,22 +78,17 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ips []string) {
 		data = append(data, res)
 	}
 
-	fmt.Println(data)
-
 	renderPage(w, &Page{Data: map[string]any{"state": data}})
 }
 
 func onHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state KeylightState) {
-	var onState int
 	var response []byte
 	if state.Lights[0].On == 0 {
-		onState = 1
 		response = []byte("Off")
 	} else {
-		onState = 0
 		response = []byte("On")
 	}
-	body := []byte(fmt.Sprintf(`{"lights": [{ "on": %d}]}`, onState))
+	body := []byte(fmt.Sprintf(`{"lights": [{ "on": %d}]}`, 1-state.Lights[0].On))
 	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.Lights[0].IP)
 	if err := sendRequest(body, url, client); err != nil {
 		fmt.Println("There's been an error sending a request to the associated keylight.")
@@ -114,8 +108,6 @@ func brightnessHandler(w http.ResponseWriter, r *http.Request, client *http.Clie
 }
 
 func temperatureHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state KeylightState) {
-	r.ParseForm()
-	fmt.Println(r.PostForm)
 	temperature := r.FormValue("temperature")
 	body := []byte(fmt.Sprintf(`{"lights": [{ "temperature": %s}]}`, temperature))
 	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.Lights[0].IP)
