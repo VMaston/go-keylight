@@ -2,12 +2,17 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"text/template"
+	"time"
+
+	"github.com/grandcat/zeroconf"
 )
 
 type Page struct {
@@ -23,6 +28,8 @@ type KeylightState struct {
 		Temperature int `json:"temperature"`
 	} `json:"lights"`
 }
+
+var templates = template.Must(template.ParseFiles("templates/index.html"))
 
 func getState(ip string, client *http.Client) (KeylightState, error) {
 	var data KeylightState
@@ -42,7 +49,6 @@ func getState(ip string, client *http.Client) (KeylightState, error) {
 		return data, err
 	}
 	data.Lights[0].IP = ip
-	fmt.Println(data)
 	return data, nil
 }
 
@@ -79,6 +85,35 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ips []string) {
 	}
 
 	renderPage(w, &Page{Data: map[string]any{"state": data}})
+}
+
+func getHandler(w http.ResponseWriter, r *http.Request) {
+	// Discover all services on the network (e.g. _workstation._tcp)
+	resolver, err := zeroconf.NewResolver(nil)
+	if err != nil {
+		log.Fatalln("Failed to initialize resolver:", err.Error())
+	}
+
+	var data []zeroconf.ServiceEntry
+	entries := make(chan *zeroconf.ServiceEntry)
+	go func(results <-chan *zeroconf.ServiceEntry) {
+		for entry := range results {
+			log.Printf("%#v\n", entry)
+			entry.Instance = strings.ReplaceAll(entry.Instance, "\\", "")
+			data = append(data, *entry)
+		}
+		log.Println("No more entries.")
+	}(entries)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+	err = resolver.Browse(ctx, "_elg._tcp", "local.", entries)
+	if err != nil {
+		log.Fatalln("Failed to browse:", err.Error())
+	}
+
+	<-ctx.Done()
+	templates.ExecuteTemplate(w, "newlights", &Page{Data: map[string]any{"lights": data}})
 }
 
 func onHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state KeylightState) {
@@ -148,7 +183,6 @@ func renderPage(w http.ResponseWriter, page *Page) {
 <script src="https://unpkg.com/htmx.org@1.9.9"></script>`
 
 	page.Data["dep"] = dep
-	var templates = template.Must(template.ParseFiles("templates/index.html"))
 	err := templates.ExecuteTemplate(w, "index.html", page)
 	if err != nil {
 		fmt.Println(err)
@@ -158,6 +192,7 @@ func renderPage(w http.ResponseWriter, page *Page) {
 
 func Start(port string, ips []string) {
 	//Handlers
+	http.HandleFunc("/get", getHandler)
 	http.HandleFunc("/", indexClosure(indexHandler, ips))
 	http.HandleFunc("/on", stateChangeClosure(onHandler))
 	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler))
