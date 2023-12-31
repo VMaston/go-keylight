@@ -3,7 +3,7 @@ package web
 import (
 	"bytes"
 	"context"
-	config "dev/go-keylight/internal"
+	"dev/go-keylight/internal/config"
 	"encoding/json"
 	"fmt"
 	"io"
