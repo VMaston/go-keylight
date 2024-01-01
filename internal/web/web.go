@@ -97,7 +97,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, settings *config.Confi
 }
 
 // Discovers any elgato devices connected to the local network.
-func getHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
+func discoverHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
 		log.Fatalln("Failed to initialize resolver:", err.Error())
@@ -205,7 +205,7 @@ func renderPage(w http.ResponseWriter, page *Page) {
 func Start(port string) {
 	settings := &config.Config{}
 	//Handlers
-	http.HandleFunc("/get", settingsClosure(getHandler, settings))
+	http.HandleFunc("/discover", settingsClosure(discoverHandler, settings))
 	http.HandleFunc("/", settingsClosure(indexHandler, settings))
 	http.HandleFunc("/on", stateChangeClosure(onHandler))
 	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler))

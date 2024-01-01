@@ -1,13 +1,33 @@
 <!DOCTYPE html>
-<html>
-{{.Data.dep}}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {{.Data.dep}}
+    <title>Elgato Control Panel</title>
+</head>
 
 <body class="dark">
-
+    
+    {{block "lights" .}}
+    <nav class="tabs left-align">
+        {{range $index, $element := .Data.state}}
+        <a {{ if eq $index 0}} class="active" {{end}} id="key{{$index}}"
+        hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{(index
+            $element.Lights 0).IP}}</a>
+            {{end}}
+            <button hx-post="/discover" hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")'
+            hx-target="#newlights" class="transparent square large a">
+            <i>add</i>
+        </button>
+    </nav>
+    
     <dialog class="modal">
-        <h5>New Keylight</h5>
+        <h5 class="center-align">Discovering Keylights</h5>
         <div id="newlights">
-            <progress id="newlights-spinner" class="circle"></progress>
+            <div class="middle-align center-align small-height">
+                <progress id="newlights-spinner" class="circle"></progress>
+            </div>
             {{block "newlights" .}}
             {{range .Data.lights}}
             <a class="row wave">
@@ -17,25 +37,12 @@
             {{end}}
             {{end}}
         </div>
-        <nav class="right-align no-space">
-            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")'
-                class="transparent link">Cancel</button>
-            <button class="transparent link">Add</button>
+        <nav class="no-space right-align">
+            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' class="transparent link">Ok</button>
         </nav>
     </dialog>
 
-    <div>
-        <div class="tabs left-align">
-            {{range $index, $element := .Data.state}}
-            <a {{ if eq $index 0}} class="active" {{end}} id="key{{$index}}"
-                hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{(index
-                $element.Lights 0).IP}}</a>
-            {{end}}
-            <button hx-post="/get" hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' hx-target="#newlights"
-                class="transparent square large a">
-                <i>add</i>
-            </button>
-        </div>
+    <main>
         {{range $index, $element := .Data.state}}
         <div id="value{{$index}}" class="page padding {{ if eq $index 0}} active {{end}}">
             <h5>Elgato Key Lights</h5>
@@ -62,7 +69,8 @@
             </nav>
         </div>
         {{end}}
-    </div>
+    </main>
+    {{end}}
 
 </body>
 
