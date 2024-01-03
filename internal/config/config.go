@@ -28,8 +28,8 @@ func (c *Config) InitConfig() *Config {
 	if c.data == nil {
 		file, err := os.ReadFile("config.txt")
 		if err != nil {
-			fmt.Println("Failure to read file, aborting...")
-			panic(err)
+			fmt.Println("Failure to read file, creating new config.txt...")
+			os.WriteFile("config.txt", nil, 0600)
 		}
 		c.data = file
 		c.IPs = strings.Fields(string(file))
