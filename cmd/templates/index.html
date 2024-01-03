@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,37 +9,40 @@
 </head>
 
 <body class="dark">
-    
+
     {{block "lights" .}}
     <nav class="tabs left-align">
         {{range $index, $element := .Data.state}}
         <a {{ if eq $index 0}} class="active" {{end}} id="key{{$index}}"
-        hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{(index
+            hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{(index
             $element.Lights 0).IP}}</a>
-            {{end}}
-            <button hx-post="/discover" hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")'
-            hx-target="#newlights" class="transparent square large a">
+        {{end}}
+        <button hx-post="/discover" hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' hx-target="#newlights"
+            class="transparent square large a">
             <i>add</i>
         </button>
     </nav>
-    
+
     <dialog class="modal">
         <h5 class="center-align">Discovering Keylights</h5>
-        <div id="newlights">
+        <form id="newlights">
             <div class="middle-align center-align small-height">
                 <progress id="newlights-spinner" class="circle"></progress>
             </div>
             {{block "newlights" .}}
             {{range .Data.lights}}
-            <a class="row wave">
-                <i>Lightbulb</i>
-                <div>{{.Instance}} {{.AddrIPv4}}</div>
-            </a>
+            <label class="checkbox">
+                <input type="checkbox" name="ip" value={{.AddrIPv4}}>
+                <span>{{.Instance}} {{.AddrIPv4}}</span>
+            </label>
             {{end}}
             {{end}}
-        </div>
+        </form>
         <nav class="no-space right-align">
-            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' class="transparent link">Ok</button>
+            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")'
+                class="transparent link">Cancel</button>
+            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' hx-include="#newlights" hx-post="/add"
+                class="transparent link">Add</button>
         </nav>
     </dialog>
 
@@ -51,7 +55,6 @@
                 <button name="ip" value={{(index $element.Lights 0).IP}} hx-post="/on" hx-swap="innerHTML">
                     {{if eq (index $element.Lights 0).On 0}} On {{else}} Off {{end}}
                 </button>
-                <input type="hidden" name="ip" value={{(index $element.Lights 0).IP}}>
                 <i>brightness_high</i>
                 <label class="slider medium">
                     <input hx-post="/brightness" hx-include="[name='ip']" name="brightness" type="range"

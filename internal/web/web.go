@@ -61,13 +61,13 @@ func discoverHandler(w http.ResponseWriter, r *http.Request, settings *config.Co
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
 			entry.Instance = strings.ReplaceAll(entry.Instance, "\\", "")
-			settings.SetIP((fmt.Sprint(entry.AddrIPv4[0])))
+			// settings.SetIP((fmt.Sprint(entry.AddrIPv4[0])))
 			data = append(data, *entry)
 		}
 		log.Println("No more entries.")
 	}(entries)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	err = resolver.Browse(ctx, "_elg._tcp", "local.", entries)
 	if err != nil {
@@ -76,6 +76,11 @@ func discoverHandler(w http.ResponseWriter, r *http.Request, settings *config.Co
 
 	<-ctx.Done()
 	templates.ExecuteTemplate(w, "newlights", &Page{Data: map[string]any{"lights": data}})
+}
+
+func addHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
+	ip := r.FormValue("ip")
+	fmt.Println(ip)
 }
 
 // onHandler calls keylight.SendRequest to toggle the light on or off depending on the current state of the light and returns the opposite toggle for the button.
@@ -160,6 +165,7 @@ func Start(port string) {
 	settings := &config.Config{}
 	//Handlers
 	http.HandleFunc("/discover", settingsClosure(discoverHandler, settings))
+	http.HandleFunc("/add", settingsClosure(addHandler, settings))
 	http.HandleFunc("/", settingsClosure(indexHandler, settings))
 	http.HandleFunc("/on", stateChangeClosure(onHandler))
 	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler))
