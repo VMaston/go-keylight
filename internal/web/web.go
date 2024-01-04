@@ -150,9 +150,9 @@ func settingsClosure(fn func(http.ResponseWriter, *http.Request, *config.Config)
 
 // renderPage renders the page using ExecuteTemplate while inserting the Data map contained in the Page struct.
 func renderPage(w http.ResponseWriter, page *Page) {
-	var dep = `<link href="https://cdn.jsdelivr.net/npm/beercss@3.4.9/dist/cdn/beer.min.css" rel="stylesheet">
-<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.4.9/dist/cdn/beer.min.js"></script>
-<script type="module" src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.0/dist/cdn/material-dynamic-colors.min.js"></script>
+	var dep = `<link href="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css" rel="stylesheet">
+	<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.js"></script>
+	<script type="module" src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.0/dist/cdn/material-dynamic-colors.min.js"></script>
 <script src="https://unpkg.com/htmx.org@1.9.9"></script>`
 
 	page.Data["dep"] = dep
