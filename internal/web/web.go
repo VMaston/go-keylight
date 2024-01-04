@@ -61,7 +61,6 @@ func discoverHandler(w http.ResponseWriter, r *http.Request, settings *config.Co
 	go func(results <-chan *zeroconf.ServiceEntry) {
 		for entry := range results {
 			entry.Instance = strings.ReplaceAll(entry.Instance, "\\", "")
-			// settings.SetIP((fmt.Sprint(entry.AddrIPv4[0])))
 			data = append(data, *entry)
 		}
 		log.Println("No more entries.")
@@ -78,9 +77,13 @@ func discoverHandler(w http.ResponseWriter, r *http.Request, settings *config.Co
 	templates.ExecuteTemplate(w, "newlights", &Page{Data: map[string]any{"lights": data}})
 }
 
+// addHandler calls the settings.SetIP function to append the IPs from the request to the config file and updates the settings object, then refreshes the page.
 func addHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
-	ip := r.FormValue("ip")
-	fmt.Println(ip)
+	r.ParseForm()
+	for _, v := range r.Form["ip"] {
+		settings.SetIP(v[1 : len(v)-1])
+	}
+	w.Header().Add("HX-Refresh", "true")
 }
 
 // onHandler calls keylight.SendRequest to toggle the light on or off depending on the current state of the light and returns the opposite toggle for the button.
