@@ -55,6 +55,7 @@
                 <button name="ip" value={{(index $element.Lights 0).IP}} hx-post="/on" hx-swap="innerHTML">
                     {{if eq (index $element.Lights 0).On 0}} On {{else}} Off {{end}}
                 </button>
+                <input type="hidden" name="ip" value={{(index $element.Lights 0).IP}}>
                 <i>brightness_high</i>
                 <label class="slider medium">
                     <input hx-post="/brightness" hx-include="[name='ip']" name="brightness" type="range"
