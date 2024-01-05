@@ -30,19 +30,21 @@ func indexHandler(w http.ResponseWriter, r *http.Request, settings *config.Confi
 		return
 	}
 
-	ips := settings.IPs
+	lights := settings.Lights
 
-	var data []keylight.KeylightState
-	for _, v := range ips {
-		if v == "" {
+	var data []keylight.Keylight
+	for _, v := range lights {
+		if v.IP == "" {
 			fmt.Println("No valid IP to poll.")
 			continue
 		}
-		res, err := keylight.GetState(v, &http.Client{})
+		res, err := keylight.GetState(v.IP, &http.Client{})
 		if err != nil {
 			fmt.Println("There has been an error polling the light.")
 			continue
 		}
+		res.Name = v.Name
+		res.KeepAwake = v.KeepAwake
 		data = append(data, res)
 	}
 
@@ -80,22 +82,28 @@ func discoverHandler(w http.ResponseWriter, r *http.Request, settings *config.Co
 // addHandler calls the settings.SetIP function to append the IPs from the request to the config file and updates the settings object, then refreshes the page.
 func addHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
 	r.ParseForm()
-	for _, v := range r.Form["ip"] {
-		settings.SetIP(v[1 : len(v)-1])
+	fmt.Println(r.Form)
+	for i, v := range r.Form["ip"] {
+		settings.AddLight(v[1:len(v)-1], r.Form["name"][i])
 	}
 	w.Header().Add("HX-Refresh", "true")
 }
 
+func keepAwakeHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
+	r.ParseForm()
+	fmt.Println(r.FormValue("switch"))
+}
+
 // onHandler calls keylight.SendRequest to toggle the light on or off depending on the current state of the light and returns the opposite toggle for the button.
-func onHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state keylight.KeylightState) {
+func onHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state keylight.Keylight) {
 	var response []byte
-	if state.Lights[0].On == 0 {
+	if state.On == 0 {
 		response = []byte("Off")
 	} else {
 		response = []byte("On")
 	}
-	body := []byte(fmt.Sprintf(`{"lights": [{ "on": %d}]}`, 1-state.Lights[0].On))
-	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.Lights[0].IP)
+	body := []byte(fmt.Sprintf(`{"lights": [{ "on": %d}]}`, 1-state.On))
+	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.IP)
 	if err := keylight.SendRequest(body, url, client); err != nil {
 		fmt.Println("There's been an error sending a request to the associated keylight.")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -104,10 +112,10 @@ func onHandler(w http.ResponseWriter, r *http.Request, client *http.Client, stat
 }
 
 // brightnessHandler calls keylight.SendRequest to adjust the brightness value based on the user input from the frontend.
-func brightnessHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state keylight.KeylightState) {
+func brightnessHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state keylight.Keylight) {
 	brightness := r.FormValue("brightness")
 	body := []byte(fmt.Sprintf(`{"lights": [{ "brightness": %s}]}`, brightness))
-	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.Lights[0].IP)
+	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.IP)
 	if err := keylight.SendRequest(body, url, client); err != nil {
 		fmt.Println("There's been an error sending a request to the associated keylight.")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -115,10 +123,10 @@ func brightnessHandler(w http.ResponseWriter, r *http.Request, client *http.Clie
 }
 
 // temperatureHandler calls keylight.SendRequest to adjust the temperature value based on the user input from the frontend.
-func temperatureHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state keylight.KeylightState) {
+func temperatureHandler(w http.ResponseWriter, r *http.Request, client *http.Client, state keylight.Keylight) {
 	temperature := r.FormValue("temperature")
 	body := []byte(fmt.Sprintf(`{"lights": [{ "temperature": %s}]}`, temperature))
-	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.Lights[0].IP)
+	url := fmt.Sprintf("http://%s:9123/elgato/lights", state.IP)
 	if err := keylight.SendRequest(body, url, client); err != nil {
 		fmt.Println("There's been an error sending a request to the associated keylight.")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -126,10 +134,9 @@ func temperatureHandler(w http.ResponseWriter, r *http.Request, client *http.Cli
 }
 
 // stateChangeClosure initializes a HTTP client and calls keylight.GetState for the initial states when using on, brightness or temperature adjustment handlers.
-func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, keylight.KeylightState)) http.HandlerFunc {
+func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, keylight.Keylight), client *http.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := r.FormValue("ip")
-		client := &http.Client{}
 		state, err := keylight.GetState(ip, client)
 		if err != nil {
 			fmt.Println("There's been an error polling the keylight.")
@@ -142,7 +149,6 @@ func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client
 
 // settingsClosure intializes the settings object (shared between handlers via pointer)
 func settingsClosure(fn func(http.ResponseWriter, *http.Request, *config.Config), settings *config.Config) http.HandlerFunc {
-	settings = settings.InitConfig()
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, settings)
 	}
@@ -153,7 +159,7 @@ func renderPage(w http.ResponseWriter, page *Page) {
 	var dep = `<link href="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css" rel="stylesheet">
 	<script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.js"></script>
 	<script type="module" src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.0/dist/cdn/material-dynamic-colors.min.js"></script>
-<script src="https://unpkg.com/htmx.org@1.9.9"></script>`
+	<script src="https://unpkg.com/htmx.org@1.9.9"></script>`
 
 	page.Data["dep"] = dep
 	err := templates.ExecuteTemplate(w, "index.html", page)
@@ -165,14 +171,19 @@ func renderPage(w http.ResponseWriter, page *Page) {
 
 // Start initializes the config, registers the handlers and starts the webserver.
 func Start(port string) {
+	client := &http.Client{}
 	settings := &config.Config{}
+	settings = settings.InitConfig()
+	settings.KeepAwake(client)
+
 	//Handlers
 	http.HandleFunc("/discover", settingsClosure(discoverHandler, settings))
 	http.HandleFunc("/add", settingsClosure(addHandler, settings))
 	http.HandleFunc("/", settingsClosure(indexHandler, settings))
-	http.HandleFunc("/on", stateChangeClosure(onHandler))
-	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler))
-	http.HandleFunc("/temperature", stateChangeClosure(temperatureHandler))
+	http.HandleFunc("/on", stateChangeClosure(onHandler, client))
+	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler, client))
+	http.HandleFunc("/temperature", stateChangeClosure(temperatureHandler, client))
+	http.HandleFunc("/keepawake", settingsClosure(keepAwakeHandler, settings))
 	//Start Server
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

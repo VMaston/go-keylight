@@ -8,10 +8,18 @@ import (
 	"net/http"
 )
 
-type KeylightState struct {
+type Keylight struct {
+	Name        string
+	IP          string
+	On          int
+	Brightness  int
+	Temperature int
+	KeepAwake   bool
+}
+
+type KeylightJSON struct {
 	NumberOfLights int `json:"numberOfLights"`
 	Lights         []struct {
-		IP          string
 		On          int `json:"on"`
 		Brightness  int `json:"brightness"`
 		Temperature int `json:"temperature"`
@@ -19,25 +27,30 @@ type KeylightState struct {
 }
 
 // Fetches the current state of the light.
-func GetState(ip string, client *http.Client) (KeylightState, error) {
-	var data KeylightState
+func GetState(ip string, client *http.Client) (Keylight, error) {
+	var data KeylightJSON
+	var keylight Keylight
 	res, err := http.Get(fmt.Sprintf("http://%s:9123/elgato/lights", ip))
 	if err != nil {
 		fmt.Println("There has been an error polling the light.")
-		return data, err
+		return keylight, err
 	}
 	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("There has been an error reading the data received from the light.")
-		return data, err
+		return keylight, err
 	}
 	if err := json.Unmarshal(body, &data); err != nil {
 		fmt.Println("There has been an error reading the data received from the light.")
-		return data, err
+		return keylight, err
 	}
-	data.Lights[0].IP = ip
-	return data, nil
+	keylight.IP = ip
+	keylight.Brightness = data.Lights[0].Brightness
+	keylight.Temperature = data.Lights[0].Temperature
+	keylight.On = data.Lights[0].On
+
+	return keylight, nil
 }
 
 // Sends a request to the Elgato device.
