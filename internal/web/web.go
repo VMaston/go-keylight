@@ -44,7 +44,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, settings *config.Confi
 			continue
 		}
 		res.Name = v.Name
-		res.KeepAwake = v.KeepAwake
+		res.KeepAwake = v.KeepAwake.On
 		data = append(data, res)
 	}
 
@@ -90,8 +90,19 @@ func addHandler(w http.ResponseWriter, r *http.Request, settings *config.Config)
 }
 
 func keepAwakeHandler(w http.ResponseWriter, r *http.Request, settings *config.Config) {
-	r.ParseForm()
-	fmt.Println(r.FormValue("switch"))
+	ip := r.FormValue("ip")
+	slider := r.FormValue("switch-" + ip)
+	if slider == "off" {
+		settings.DisableKeepAwake(ip)
+	} else if slider == "on" {
+		fmt.Println("HELLO")
+		for i, light := range settings.Lights {
+			if light.IP == ip {
+				settings.Lights[i].KeepAwake.On = true
+			}
+		}
+		settings.KeepAwake(&http.Client{})
+	}
 }
 
 // onHandler calls keylight.SendRequest to toggle the light on or off depending on the current state of the light and returns the opposite toggle for the button.

@@ -72,18 +72,18 @@
                     <div class="tooltip"></div>
                 </label>
             </nav>
-            <!-- <nav>
+            <nav>
                 <div class="min">
                     <h6>Keep Awake</h6>
                     <div>Periodically Ping Device</div>
                 </div>
                 <label class="switch">
-                    <input hx-post="/keepawake" hx-include="[name='switch']" {{if eq $element.KeepAwake true}} checked
-                        {{end}} type="checkbox" name="switch">
+                    <input hx-post="/keepawake" hx-include="[name='switch-{{$element.IP}}'], [name='ip']" {{if eq
+                        $element.KeepAwake true}} checked {{end}} type="checkbox" name="switch-{{$element.IP}}">
                     <span></span>
-                    <input type="hidden" value="off" name="switch">
+                    <input type="hidden" value="off" name="switch-{{$element.IP}}">
                 </label>
-            </nav> -->
+            </nav>
         </div>
         {{end}}
     </main>

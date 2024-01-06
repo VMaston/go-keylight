@@ -12,11 +12,18 @@ import (
 
 type Config struct {
 	data   []byte
-	Lights []struct {
-		IP        string
-		Name      string
-		KeepAwake bool
-	}
+	Lights []Lights
+}
+
+type Lights struct {
+	IP   string
+	Name string
+	KeepAwake
+}
+
+type KeepAwake struct {
+	On     bool
+	ticker *time.Ticker
 }
 
 // Config Setter/Getter
@@ -29,11 +36,7 @@ func (c *Config) AddLight(ip string, name string) *Config {
 		fmt.Println("Failure to write to file, aborting...")
 		panic(err)
 	}
-	c.Lights = append(c.Lights, struct {
-		IP        string
-		Name      string
-		KeepAwake bool
-	}{IP: ip, Name: name, KeepAwake: false})
+	c.Lights = append(c.Lights, Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: false}})
 	return c
 }
 
@@ -53,31 +56,35 @@ func (c *Config) InitConfig() *Config {
 				fmt.Println("Failure to convert config file KeepAwake to boolean value. Setting false as default.")
 				ka = false
 			}
-			c.Lights = append(c.Lights, struct {
-				IP        string
-				Name      string
-				KeepAwake bool
-			}{IP: fields[0], Name: fields[1], KeepAwake: ka})
+			c.Lights = append(c.Lights, Lights{IP: fields[0], Name: fields[1], KeepAwake: KeepAwake{On: ka}})
 		}
 	}
 	return c
 }
 
-func (c *Config) KeepAwake(client *http.Client) {
-	for _, light := range c.Lights {
-		if light.KeepAwake {
-			IP := light.IP
-			ticker := time.NewTicker(1 * time.Second)
-			quit := make(chan struct{})
+func (c *Config) DisableKeepAwake(ip string) {
+	for i, light := range c.Lights {
+		if light.IP == ip {
+			if light.KeepAwake.ticker.C != nil {
+				idx := i
+				c.Lights[idx].ticker.Stop()
+				return
+			}
+		}
+	}
+}
 
+func (c *Config) KeepAwake(client *http.Client) {
+	for i, light := range c.Lights {
+		if light.KeepAwake.On {
+			IP := light.IP
+			c.Lights[i].KeepAwake = KeepAwake{On: true, ticker: time.NewTicker(1 * time.Hour)}
+			idx := i
 			go func() {
 				for {
 					select {
-					case <-ticker.C:
+					case <-c.Lights[idx].ticker.C:
 						keylight.GetState(IP, client)
-					case <-quit:
-						ticker.Stop()
-						return
 					}
 				}
 			}()
