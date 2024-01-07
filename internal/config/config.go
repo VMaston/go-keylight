@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// TODO: Make []Lights a map[string]Lights type to avoid having to iterate-search for the IP.
 type Config struct {
 	data   []byte
 	Lights []Lights
@@ -28,7 +29,7 @@ type KeepAwake struct {
 
 // Config Setter/Getter
 
-func (c *Config) AddLight(ip string, name string) *Config {
+func (c *Config) AddLight(ip string, name string) {
 	line := []byte("\n" + ip + ", " + name + ", " + "false")
 	c.data = append(c.data, line...)
 	err := os.WriteFile("config.txt", c.data, 0600)
@@ -37,10 +38,10 @@ func (c *Config) AddLight(ip string, name string) *Config {
 		panic(err)
 	}
 	c.Lights = append(c.Lights, Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: false}})
-	return c
 }
 
-func (c *Config) InitConfig() *Config {
+func InitConfig() *Config {
+	c := &Config{}
 	if c.data == nil {
 		file, err := os.ReadFile("config.txt")
 		if err != nil {
@@ -62,18 +63,6 @@ func (c *Config) InitConfig() *Config {
 	return c
 }
 
-func (c *Config) DisableKeepAwake(ip string) {
-	for i, light := range c.Lights {
-		if light.IP == ip {
-			if light.KeepAwake.ticker.C != nil {
-				idx := i
-				c.Lights[idx].ticker.Stop()
-				return
-			}
-		}
-	}
-}
-
 func (c *Config) KeepAwake(client *http.Client) {
 	for i, light := range c.Lights {
 		if light.KeepAwake.On {
@@ -88,6 +77,18 @@ func (c *Config) KeepAwake(client *http.Client) {
 					}
 				}
 			}()
+		}
+	}
+}
+
+func (c *Config) DisableKeepAwake(ip string) {
+	for i, light := range c.Lights {
+		if light.IP == ip {
+			if light.KeepAwake.ticker.C != nil {
+				idx := i
+				c.Lights[idx].ticker.Stop()
+				return
+			}
 		}
 	}
 }

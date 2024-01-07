@@ -2,10 +2,16 @@ package keylight
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"strings"
+	"time"
+
+	"github.com/grandcat/zeroconf"
 )
 
 type Keylight struct {
@@ -24,6 +30,34 @@ type KeylightJSON struct {
 		Brightness  int `json:"brightness"`
 		Temperature int `json:"temperature"`
 	} `json:"lights"`
+}
+
+func Discover() []zeroconf.ServiceEntry {
+	resolver, err := zeroconf.NewResolver(nil)
+	if err != nil {
+		log.Fatalln("Failed to initialize resolver:", err.Error())
+	}
+
+	var data []zeroconf.ServiceEntry
+	entries := make(chan *zeroconf.ServiceEntry)
+	go func(results <-chan *zeroconf.ServiceEntry) {
+		for entry := range results {
+			entry.Instance = strings.ReplaceAll(entry.Instance, "\\", "")
+			data = append(data, *entry)
+		}
+		log.Println("No more entries.")
+	}(entries)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err = resolver.Browse(ctx, "_elg._tcp", "local.", entries)
+	if err != nil {
+		log.Fatalln("Failed to browse:", err.Error())
+	}
+
+	<-ctx.Done()
+
+	return data
 }
 
 // Fetches the current state of the light.
