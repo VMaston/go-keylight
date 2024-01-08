@@ -57,20 +57,19 @@
             <h5>{{$element.Name}}</h5>
             <div>{{$element.IP}}</div>
             <nav>
-                <button name="ip" value={{index $element.IP}} hx-post="/on" hx-swap="innerHTML">
+                <button hx-include="next [name='ip']" hx-post="/on" hx-swap="innerHTML">
                     {{if eq $element.On 0}} On {{else}} Off {{end}}
                 </button>
-                <input type="hidden" name="ip" value={{index $element.IP}}>
                 <i>brightness_high</i>
                 <label class="slider medium">
-                    <input hx-post="/brightness" hx-include="[name='ip']" name="brightness" type="range"
+                    <input hx-post="/brightness" hx-include="next [name='ip']" name="brightness" type="range"
                         value="{{index $element.Brightness}}" min="0" max="100">
                     <span></span>
                     <div class="tooltip"></div>
                 </label>
                 <i>thermostat</i>
                 <label class="slider medium">
-                    <input hx-post="/temperature" hx-include="[name='ip']" name="temperature" type="range"
+                    <input hx-post="/temperature" hx-include="next [name='ip']" name="temperature" type="range"
                         value="{{index $element.Temperature}}" min="143" max="344">
                     <span></span>
                     <div class="tooltip"></div>
@@ -82,12 +81,13 @@
                     <div>Periodically Ping Device</div>
                 </div>
                 <label class="switch">
-                    <input hx-post="/keepawake" hx-include="[name='switch-{{$element.IP}}'], [name='ip']" {{if eq
-                        $element.KeepAwake true}} checked {{end}} type="checkbox" name="switch-{{$element.IP}}">
+                    <input hx-post="/keepawake" hx-include="next [name='ip'], next [name='switch-{{$element.IP}}']" {{if
+                        eq $element.KeepAwake true}} checked {{end}} type="checkbox" name="switch-{{$element.IP}}">
                     <span></span>
                     <input type="hidden" value="off" name="switch-{{$element.IP}}">
                 </label>
             </nav>
+            <input type="hidden" name="ip" value={{index $element.IP}}>
         </div>
         {{end}}
     </main>
