@@ -12,8 +12,8 @@ import (
 
 // TODO: Make []Lights a map[string]Lights type to avoid having to iterate-search for the IP.
 type Config struct {
-	data   []byte
-	Lights []Lights
+	data     []byte
+	LightMap map[string]*Lights
 }
 
 type Lights struct {
@@ -37,11 +37,11 @@ func (c *Config) AddLight(ip string, name string) {
 		fmt.Println("Failure to write to file, aborting...")
 		panic(err)
 	}
-	c.Lights = append(c.Lights, Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: false}})
+	c.LightMap[ip] = &Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: false}}
 }
 
 func InitConfig() *Config {
-	c := &Config{}
+	c := &Config{data: nil, LightMap: map[string]*Lights{}}
 	if c.data == nil {
 		file, err := os.ReadFile("config.txt")
 		if err != nil {
@@ -57,23 +57,23 @@ func InitConfig() *Config {
 				fmt.Println("Failure to convert config file KeepAwake to boolean value. Setting false as default.")
 				ka = false
 			}
-			c.Lights = append(c.Lights, Lights{IP: fields[0], Name: fields[1], KeepAwake: KeepAwake{On: ka}})
+			c.LightMap[fields[0]] = &Lights{IP: fields[0], Name: fields[1], KeepAwake: KeepAwake{On: ka}}
 		}
 	}
 	return c
 }
 
+// TODO: Write KeepAwake status to file.
 func (c *Config) KeepAwake(client *http.Client) {
-	for i, light := range c.Lights {
+	for i, light := range c.LightMap {
 		if light.KeepAwake.On {
-			IP := light.IP
-			c.Lights[i].KeepAwake = KeepAwake{On: true, ticker: time.NewTicker(1 * time.Hour)}
-			idx := i
+			ip := light.IP
+			c.LightMap[i].KeepAwake = KeepAwake{On: true, ticker: time.NewTicker(1 * time.Hour)}
 			go func() {
 				for {
 					select {
-					case <-c.Lights[idx].ticker.C:
-						keylight.GetState(IP, client)
+					case <-c.LightMap[ip].ticker.C:
+						keylight.GetState(ip, client)
 					}
 				}
 			}()
@@ -82,13 +82,8 @@ func (c *Config) KeepAwake(client *http.Client) {
 }
 
 func (c *Config) DisableKeepAwake(ip string) {
-	for i, light := range c.Lights {
-		if light.IP == ip {
-			if light.KeepAwake.ticker.C != nil {
-				idx := i
-				c.Lights[idx].ticker.Stop()
-				return
-			}
-		}
+	if c.LightMap[ip].ticker.C != nil {
+		c.LightMap[ip].ticker.Stop()
+		return
 	}
 }

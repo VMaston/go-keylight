@@ -25,7 +25,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, client *http.Client, s
 		return
 	}
 
-	lights := settings.Lights
+	lights := settings.LightMap
 
 	var data []keylight.Keylight
 	for _, v := range lights {
@@ -67,11 +67,7 @@ func keepAwakeHandler(w http.ResponseWriter, r *http.Request, client *http.Clien
 	if slider == "off" {
 		settings.DisableKeepAwake(ip)
 	} else if slider == "on" {
-		for i, light := range settings.Lights {
-			if light.IP == ip {
-				settings.Lights[i].KeepAwake.On = true
-			}
-		}
+		settings.LightMap[ip].KeepAwake.On = true
 		settings.KeepAwake(client)
 	}
 }
