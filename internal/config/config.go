@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// TODO: Make []Lights a map[string]Lights type to avoid having to iterate-search for the IP.
 type Config struct {
 	data     []byte
 	LightMap map[string]*Lights
