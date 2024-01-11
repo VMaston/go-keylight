@@ -81,10 +81,9 @@
                     <div>Periodically Ping Device</div>
                 </div>
                 <label class="switch">
-                    <input hx-post="/keepawake" hx-include="next [name='ip'], next [name='switch-{{$element.IP}}']" {{if
-                        eq $element.KeepAwake true}} checked {{end}} type="checkbox" name="switch-{{$element.IP}}">
+                    <input hx-post="/keepawake" hx-include="next [name='ip']" {{if eq $element.KeepAwake true}} checked
+                        {{end}} type="checkbox" name="switch-{{$element.IP}}">
                     <span></span>
-                    <input type="hidden" value="off" name="switch-{{$element.IP}}">
                 </label>
             </nav>
             <input type="hidden" name="ip" value={{index $element.IP}}>

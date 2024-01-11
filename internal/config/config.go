@@ -2,67 +2,71 @@ package config
 
 import (
 	"dev/go-keylight/internal/keylight"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
 type Config struct {
-	data     []byte
+	json     JSONConfig
 	LightMap map[string]*Lights
 }
 
 type Lights struct {
-	IP   string
-	Name string
+	IP   string `json:"ip"`
+	Name string `json:"name"`
 	KeepAwake
 }
 
 type KeepAwake struct {
-	On     bool
+	On     bool `json:"keepAwake"`
 	ticker *time.Ticker
 }
 
+type JSONConfig map[string]Lights
+
 // Config Setter/Getter
 
-func (c *Config) AddLight(ip string, name string) {
-	line := []byte("\n" + ip + ", " + name + ", " + "false")
-	c.data = append(c.data, line...)
-	err := os.WriteFile("config.txt", c.data, 0600)
+func (c *Config) AddLight(ip string, name string, ka bool) {
+	c.json[ip] = Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: ka}}
+	jsonFile, err := os.Create("config.json")
 	if err != nil {
-		fmt.Println("Failure to write to file, aborting...")
-		panic(err)
+		fmt.Println("Failure to open config.json")
+		return
 	}
-	c.LightMap[ip] = &Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: false}}
+	enc := json.NewEncoder(jsonFile)
+	if err := enc.Encode(&c.json); err != nil {
+		log.Println(err)
+	}
+	c.LightMap[ip] = &Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: ka}}
 }
 
 func InitConfig() *Config {
-	c := &Config{data: nil, LightMap: map[string]*Lights{}}
-	if c.data == nil {
-		file, err := os.ReadFile("config.txt")
+	c := &Config{json: nil, LightMap: map[string]*Lights{}}
+	if c.json == nil {
+		j := JSONConfig{}
+		file, err := os.Open("config.json")
 		if err != nil {
-			fmt.Println("Failure to read file, creating new config.txt...")
-			os.WriteFile("config.txt", nil, 0600)
+			fmt.Println("Failure to open config.json, creating file.")
+			os.WriteFile("config.json", nil, 0600)
+			c.json = j
+			return c
 		}
-		c.data = file
-		lines := strings.Split(string(file), "\n")
-		for _, v := range lines {
-			fields := strings.Split(v, ", ")
-			ka, err := strconv.ParseBool(fields[2])
-			if err != nil {
-				fmt.Println("Failure to convert config file KeepAwake to boolean value. Setting false as default.")
-				ka = false
-			}
-			c.LightMap[fields[0]] = &Lights{IP: fields[0], Name: fields[1], KeepAwake: KeepAwake{On: ka}}
+		dec := json.NewDecoder(file)
+		if err := dec.Decode(&j); err != nil {
+			log.Println(err)
+		}
+		c.json = j
+		for _, v := range c.json {
+			c.LightMap[v.IP] = &Lights{IP: v.IP, Name: v.Name, KeepAwake: v.KeepAwake}
 		}
 	}
 	return c
 }
 
-// TODO: Write KeepAwake status to file.
 func (c *Config) KeepAwake(client *http.Client) {
 	for i, light := range c.LightMap {
 		if light.KeepAwake.On {
@@ -83,6 +87,7 @@ func (c *Config) KeepAwake(client *http.Client) {
 func (c *Config) DisableKeepAwake(ip string) {
 	if c.LightMap[ip].ticker.C != nil {
 		c.LightMap[ip].ticker.Stop()
+		c.AddLight(c.LightMap[ip].IP, c.LightMap[ip].Name, false)
 		return
 	}
 }

@@ -22,3 +22,4 @@ go.work
 
 # Personal Configs
 cmd/config.txt
+cmd/config.json

@@ -42,7 +42,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request, client *http.Client, s
 		res.KeepAwake = v.KeepAwake.On
 		data = append(data, res)
 	}
-
 	renderPage(w, &Page{Data: map[string]any{"state": data}})
 }
 
@@ -56,7 +55,7 @@ func discoverHandler(w http.ResponseWriter, r *http.Request, client *http.Client
 func addHandler(w http.ResponseWriter, r *http.Request, client *http.Client, settings *config.Config) {
 	r.ParseForm()
 	for i, v := range r.Form["ip"] {
-		settings.AddLight(v[1:len(v)-1], r.Form["name"][i])
+		settings.AddLight(v[1:len(v)-1], r.Form["name"][i], false)
 	}
 	w.Header().Add("HX-Refresh", "true")
 }
@@ -64,10 +63,11 @@ func addHandler(w http.ResponseWriter, r *http.Request, client *http.Client, set
 func keepAwakeHandler(w http.ResponseWriter, r *http.Request, client *http.Client, settings *config.Config) {
 	ip := r.FormValue("ip")
 	slider := r.FormValue("switch-" + ip)
-	if slider == "off" {
+	if slider == "" {
 		settings.DisableKeepAwake(ip)
 	} else if slider == "on" {
 		settings.LightMap[ip].KeepAwake.On = true
+		settings.AddLight(settings.LightMap[ip].IP, settings.LightMap[ip].Name, true)
 		settings.KeepAwake(client)
 	}
 }
