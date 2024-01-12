@@ -114,6 +114,11 @@ func temperatureHandler(w http.ResponseWriter, r *http.Request, client *http.Cli
 // stateChangeClosure initializes a HTTP client and calls keylight.GetState for the initial states when using on, brightness or temperature adjustment handlers.
 func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, keylight.Keylight, string), client *http.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+
 		ip := r.FormValue("ip")
 		state, err := keylight.GetState(ip, client)
 		url := fmt.Sprintf("http://%s:9123/elgato/lights", state.IP)
@@ -129,6 +134,11 @@ func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client
 // settingsClosure intializes the settings object (shared between handlers via pointer)
 func settingsClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, *config.Config), client *http.Client, settings *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" && r.Method != http.MethodPost || r.URL.Path == "/" && r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+
 		fn(w, r, client, settings)
 	}
 }
