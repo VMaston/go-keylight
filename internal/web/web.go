@@ -112,9 +112,9 @@ func temperatureHandler(w http.ResponseWriter, r *http.Request, client *http.Cli
 }
 
 // stateChangeClosure initializes a HTTP client and calls keylight.GetState for the initial states when using on, brightness or temperature adjustment handlers.
-func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, keylight.Keylight, string), client *http.Client) http.HandlerFunc {
+func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, keylight.Keylight, string), method string, client *http.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
+		if r.Method != method {
 			http.NotFound(w, r)
 			return
 		}
@@ -132,9 +132,9 @@ func stateChangeClosure(fn func(http.ResponseWriter, *http.Request, *http.Client
 }
 
 // settingsClosure intializes the settings object (shared between handlers via pointer)
-func settingsClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, *config.Config), client *http.Client, settings *config.Config) http.HandlerFunc {
+func settingsClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, *config.Config), method string, client *http.Client, settings *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" && r.Method != http.MethodPost || r.URL.Path == "/" && r.Method != http.MethodGet {
+		if r.Method != method {
 			http.NotFound(w, r)
 			return
 		}
@@ -159,13 +159,13 @@ func Start(port string) {
 	settings.KeepAwake(client)
 
 	//Handlers
-	http.HandleFunc("/discover", settingsClosure(discoverHandler, client, settings))
-	http.HandleFunc("/add", settingsClosure(addHandler, client, settings))
-	http.HandleFunc("/", settingsClosure(indexHandler, client, settings))
-	http.HandleFunc("/on", stateChangeClosure(onHandler, client))
-	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler, client))
-	http.HandleFunc("/temperature", stateChangeClosure(temperatureHandler, client))
-	http.HandleFunc("/keepawake", settingsClosure(keepAwakeHandler, client, settings))
+	http.HandleFunc("/discover", settingsClosure(discoverHandler, http.MethodPost, client, settings))
+	http.HandleFunc("/add", settingsClosure(addHandler, http.MethodPost, client, settings))
+	http.HandleFunc("/", settingsClosure(indexHandler, http.MethodGet, client, settings))
+	http.HandleFunc("/on", stateChangeClosure(onHandler, http.MethodPost, client))
+	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler, http.MethodPost, client))
+	http.HandleFunc("/temperature", stateChangeClosure(temperatureHandler, http.MethodPost, client))
+	http.HandleFunc("/keepawake", settingsClosure(keepAwakeHandler, http.MethodPost, client, settings))
 	//Start Server
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
