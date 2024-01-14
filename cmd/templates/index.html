@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.css" rel="stylesheet">
-    <script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.4.11/dist/cdn/beer.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/beercss@3.4.12/dist/cdn/beer.min.css" rel="stylesheet">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/beercss@3.4.12/dist/cdn/beer.min.js"></script>
     <script type="module"
         src="https://cdn.jsdelivr.net/npm/material-dynamic-colors@1.1.0/dist/cdn/material-dynamic-colors.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.9"></script>
@@ -14,11 +14,10 @@
 
 <body class="dark">
 
-    {{block "lights" .}}
     <nav class="tabs left-align">
         {{range $index, $element := .Data.state}}
         <a {{ if eq $index 0}} class="active" {{end}} id="key{{$index}}"
-            hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active")'>{{index
+            hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active"); ui();'>{{index
             $element.IP}}</a>
         {{end}}
         <button hx-post="/discover" hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' hx-target="#newlights"
@@ -90,7 +89,6 @@
         </div>
         {{end}}
     </main>
-    {{end}}
 
 </body>
 
