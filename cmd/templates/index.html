@@ -20,13 +20,13 @@
             hx-on:click='htmx.takeClass(htmx.find("#key{{$index}}"), "active");htmx.takeClass(htmx.find("#value{{$index}}"), "active"); ui();'>{{index
             $element.IP}}</a>
         {{end}}
-        <button hx-post="/discover" hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' hx-target="#newlights"
+        <button hx-post="/discover" hx-on:click='htmx.toggleClass(htmx.find("#add"), "active")' hx-target="#newlights"
             class="transparent square large a">
             <i>add</i>
         </button>
     </nav>
 
-    <dialog class="modal">
+    <dialog class="modal" id="add">
         <h5 class="center-align">Discovering Keylights</h5>
         <form id="newlights">
             <div class="middle-align center-align small-height">
@@ -43,9 +43,8 @@
             {{end}}
         </form>
         <nav class="no-space right-align">
-            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")'
-                class="transparent link">Cancel</button>
-            <button hx-on:click='htmx.toggleClass(htmx.find(".modal"), "active")' hx-include="#newlights" hx-post="/add"
+            <button hx-on:click='htmx.toggleClass(htmx.find("#add"), "active")' class="transparent link">Cancel</button>
+            <button hx-on:click='htmx.toggleClass(htmx.find("#add"), "active")' hx-include="#newlights" hx-post="/add"
                 class="transparent link">Add</button>
         </nav>
     </dialog>
@@ -53,7 +52,12 @@
     <main>
         {{range $index, $element := .Data.state}}
         <div id="value{{$index}}" class="page padding {{ if eq $index 0}} active {{end}}">
-            <h5>{{$element.Name}}</h5>
+            <h5 id="name">{{$element.Name}} <button class="transparent circle">
+                    <i>expand_more</i>
+                    <menu class="right no-wrap">
+                        <a hx-post="/remove" name="remove" hx-include="next [name='ip']">Remove</a>
+                    </menu>
+                </button></h5>
             <div>{{$element.IP}}</div>
             <nav>
                 <button hx-include="next [name='ip']" hx-post="/on" hx-swap="innerHTML">

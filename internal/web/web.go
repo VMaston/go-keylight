@@ -60,6 +60,16 @@ func addHandler(w http.ResponseWriter, r *http.Request, client *http.Client, set
 	w.Header().Add("HX-Refresh", "true")
 }
 
+// removeHandler calls the settings.RemoveLight function to remove the IP mapped to the settings object, updates the config file to reflect htis, then refreshes the page.
+func removeHandler(w http.ResponseWriter, r *http.Request, client *http.Client, settings *config.Config) {
+	ip := r.FormValue("ip")
+	settings.RemoveLight(ip)
+	w.Header().Add("HX-Refresh", "true")
+}
+
+// keepAwakeHandler has two divergent requests, "on" or "" (off).
+// "on" calls the settings.AddLight function to update the config file and settings object with the KeepAwake flag, then calls the KeepAwake function to start the function that pings the light every hour.
+// "" (off) calls the settings.DisableKeepAwake function, which ends the function that pings the light every hour and then updates the config file and settings object with the KeepAwake flag turned off.
 func keepAwakeHandler(w http.ResponseWriter, r *http.Request, client *http.Client, settings *config.Config) {
 	ip := r.FormValue("ip")
 	slider := r.FormValue("switch-" + ip)
@@ -161,6 +171,7 @@ func Start(port string) {
 	//Handlers
 	http.HandleFunc("/discover", settingsClosure(discoverHandler, http.MethodPost, client, settings))
 	http.HandleFunc("/add", settingsClosure(addHandler, http.MethodPost, client, settings))
+	http.HandleFunc("/remove", settingsClosure(removeHandler, http.MethodPost, client, settings))
 	http.HandleFunc("/", settingsClosure(indexHandler, http.MethodGet, client, settings))
 	http.HandleFunc("/on", stateChangeClosure(onHandler, http.MethodPost, client))
 	http.HandleFunc("/brightness", stateChangeClosure(brightnessHandler, http.MethodPost, client))

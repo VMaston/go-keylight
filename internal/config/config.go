@@ -32,6 +32,17 @@ type JSONConfig map[string]Lights
 
 func (c *Config) AddLight(ip string, name string, ka bool) {
 	c.json[ip] = Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: ka}}
+	c.writeJSON()
+	c.LightMap[ip] = &Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: ka}}
+}
+
+func (c *Config) RemoveLight(ip string) {
+	delete(c.json, ip)
+	c.writeJSON()
+	delete(c.LightMap, ip)
+}
+
+func (c *Config) writeJSON() {
 	jsonFile, err := os.Create("config.json")
 	if err != nil {
 		fmt.Println("Failure to open config.json")
@@ -41,7 +52,6 @@ func (c *Config) AddLight(ip string, name string, ka bool) {
 	if err := enc.Encode(&c.json); err != nil {
 		log.Println(err)
 	}
-	c.LightMap[ip] = &Lights{IP: ip, Name: name, KeepAwake: KeepAwake{On: ka}}
 }
 
 func InitConfig() *Config {
