@@ -1,0 +1,24 @@
+FROM golang:1.21 AS build-stage
+
+WORKDIR /app
+
+# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -C cmd -o /go-keylight
+# TODO: Find a way to copy/embed static files in container.
+
+# Deploy the application binary into a lean image
+FROM gcr.io/distroless/base-debian11 AS build-release-stage
+
+WORKDIR /
+
+COPY --from=build-stage /go-keylight /go-keylight
+
+EXPOSE 8080
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/go-keylight"]
