@@ -3,6 +3,7 @@ package web
 import (
 	"dev/go-keylight/internal/config"
 	"dev/go-keylight/internal/keylight"
+	_ "embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,7 +15,10 @@ type Page struct {
 	Data map[string]any
 }
 
-var templates = template.Must(template.ParseFiles("templates/index.html"))
+//go:embed templates/index.html
+var page string
+
+var templates, _ = template.New("index").Parse(page)
 
 // indexHandler serves the index page of the site, denying requests to pages other than root.
 // Its main purpose is to call keylight.GetState() to poll the lights for their current settings and render that data into the template.
@@ -155,7 +159,7 @@ func settingsClosure(fn func(http.ResponseWriter, *http.Request, *http.Client, *
 
 // renderPage renders the page using ExecuteTemplate while inserting the Data map contained in the Page struct.
 func renderPage(w http.ResponseWriter, page *Page) {
-	err := templates.ExecuteTemplate(w, "index.html", page)
+	err := templates.ExecuteTemplate(w, "index", page)
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
